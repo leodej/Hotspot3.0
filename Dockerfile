@@ -20,20 +20,28 @@ RUN apt-get update \
         libssl-dev \
         curl \
         netcat-openbsd \
+        pkg-config \
+        libfreetype6-dev \
+        libpng-dev \
+        libjpeg-dev \
+        zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
 COPY requirements.txt .
 
-# Install Python dependencies
+# Install Python dependencies with verbose output
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt
+    && pip install --no-cache-dir --verbose -r requirements.txt
 
 # Create necessary directories
 RUN mkdir -p /app/logs /app/static/css /app/static/js /app/uploads /app/instance
 
 # Copy project files
 COPY . .
+
+# Make entrypoint executable
+RUN chmod +x docker-entrypoint.sh
 
 # Create non-root user
 RUN adduser --disabled-password --gecos '' appuser \
@@ -47,5 +55,6 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:5000/health || exit 1
 
-# Run the application
+# Use entrypoint script
+ENTRYPOINT ["./docker-entrypoint.sh"]
 CMD ["python", "app.py"]

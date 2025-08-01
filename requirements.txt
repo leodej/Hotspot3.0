@@ -16,3 +16,4 @@ six==1.16.0
 tzlocal==5.2
 matplotlib==3.8.2
 numpy==1.26.2
+Pillow==10.1.0
