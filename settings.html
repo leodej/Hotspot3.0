@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Configurações do Sistema{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6 mx-auto">
+        <div class="card">
+            <div class="card-header bg-primary">
+                <h5><i class="bi bi-gear-fill"></i> Configurações do MikroTik</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('settings') }}">
+                    <div class="mb-3">
+                        <label for="mikrotik_host" class="form-label">Endereço do MikroTik</label>
+                        <input type="text" class="form-control" id="mikrotik_host" name="mikrotik_host" value="{{ mikrotik_host }}" placeholder="Ex: 192.168.88.1">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="mikrotik_user" class="form-label">Usuário do MikroTik</label>
+                        <input type="text" class="form-control" id="mikrotik_user" name="mikrotik_user" value="{{ mikrotik_user }}" placeholder="Ex: admin">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="mikrotik_password" class="form-label">Senha do MikroTik</label>
+                        <input type="password" class="form-control" id="mikrotik_password" name="mikrotik_password" placeholder="Digite para alterar a senha">
+                        <div class="info mt-2 text-muted">
+                            <small>Deixe em branco para manter a senha atual.</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="daily_limit" class="form-label">Limite Diário de Consumo (MB)</label>
+                        <input type="number" class="form-control" id="daily_limit" name="daily_limit" value="{{ daily_limit }}" placeholder="Ex: 512">
+                        <div class="info mt-2 text-muted">
+                            <small>Usuários que ultrapassarem este limite serão limitados automaticamente.</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="limited_profile" class="form-label">Perfil para Usuários Limitados</label>
+                        <select name="limited_profile" id="limited_profile" class="form-control">
+                            {% for profile in profiles %}
+                                <option value="{{ profile }}" {% if profile == limited_profile %}selected{% endif %}>{{ profile }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="info mt-2 text-muted">
+                            <small>Este perfil será aplicado aos usuários que atingirem o limite diário.</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="default_profile" class="form-label">Perfil Padrão</label>
+                        <select name="default_profile" id="default_profile" class="form-control">
+                            {% for profile in profiles %}
+                                <option value="{{ profile }}" {% if profile == default_profile %}selected{% endif %}>{{ profile }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="info mt-2 text-muted">
+                            <small>Este perfil será aplicado a todos os usuários no início de cada dia.</small>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary">
+                            <i class="bi bi-arrow-left"></i> Voltar
+                        </a>
+                        <button type="submit" class="btn">
+                            <i class="bi bi-save"></i> Salvar Alterações
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mx-auto mt-4">
+        <div class="card">
+            <div class="card-header bg-info">
+                <h5><i class="bi bi-tools"></i> Ações do Sistema</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-column gap-3">
+                    <div>
+                        <a href="{{ url_for('update_historical_data') }}" class="btn" style="width: 100%;">
+                            <i class="bi bi-arrow-repeat"></i> Atualizar Dados Históricos
+                        </a>
+                        <div class="info mt-2 text-muted">
+                            <small>Busca e contabiliza sessões anteriores do MikroTik.</small>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <a href="{{ url_for('check_usage_limits') }}" class="btn" style="width: 100%;">
+                            <i class="bi bi-shield-check"></i> Verificar Limites de Consumo
+                        </a>
+                        <div class="info mt-2 text-muted">
+                            <small>Verifica o consumo de todos os usuários e aplica limites quando necessário.</small>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <a href="{{ url_for('reset_profiles') }}" class="btn" style="width: 100%;">
+                            <i class="bi bi-arrow-clockwise"></i> Resetar Perfis de Usuários
+                        </a>
+                        <div class="info mt-2 text-muted">
+                            <small>Restaura todos os usuários para o perfil padrão.</small>
+                        </div>
+                    </div>
+                    <!-- Adicionar um link para a página de status do agendador na seção de ações do sistema -->
+                    <div>
+                        <a href="{{ url_for('scheduler_status') }}" class="btn" style="width: 100%;">
+                            <i class="bi bi-clock-history"></i> Verificar Status do Agendador
+                        </a>
+                        <div class="info mt-2 text-muted">
+                            <small>Verifica o status atual do agendador de tarefas e as próximas execuções programadas.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

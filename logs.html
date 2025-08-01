@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+
+{% block title %}Logs do Sistema{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="mt-4 mb-4">Logs do Sistema</h1>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Filtros</h5>
+        </div>
+        <div class="card-body">
+            <!-- Adicione esta linha para obter as tarefas disponíveis -->
+            {% set available_tasks = available_tasks if available_tasks is defined else [] %}
+            <form method="get" action="{{ url_for('view_logs') }}" class="row g-3">
+                <div class="col-md-3">
+                    <label for="level" class="form-label">Nível</label>
+                    <select name="level" id="level" class="form-select">
+                        <option value="all" {% if level == 'all' %}selected{% endif %}>Todos</option>
+                        <option value="debug" {% if level == 'debug' %}selected{% endif %}>Debug</option>
+                        <option value="info" {% if level == 'info' %}selected{% endif %}>Info</option>
+                        <option value="warning" {% if level == 'warning' %}selected{% endif %}>Warning</option>
+                        <option value="error" {% if level == 'error' %}selected{% endif %}>Error</option>
+                        <option value="critical" {% if level == 'critical' %}selected{% endif %}>Critical</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="task" class="form-label">Tarefa</label>
+                    <select name="task" id="task" class="form-select">
+                        <option value="all" {% if task == 'all' %}selected{% endif %}>Todas</option>
+                        {% for available_task in available_tasks %}
+                            <option value="{{ available_task }}" {% if task == available_task %}selected{% endif %}>{{ available_task }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="date" class="form-label">Data</label>
+                    <input type="date" name="date" id="date" class="form-control" value="{{ date }}">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">Filtrar</button>
+                    <button type="button" id="generateTestLog" class="btn btn-secondary">Gerar Log de Teste</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    {% if logs %}
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Logs</h5>
+                <div>
+                    <span class="badge bg-primary">Página {{ page }} de {{ total_pages }}</span>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Nível</th>
+                                <th>Tarefa</th>
+                                <th>Mensagem</th>
+                                <th>Detalhes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs %}
+                                <tr>
+                                    <td>{{ log.timestamp }}</td>
+                                    <td>
+                                        {% if log.level == 'DEBUG' %}
+                                            <span class="badge bg-secondary">{{ log.level }}</span>
+                                        {% elif log.level == 'INFO' %}
+                                            <span class="badge bg-info">{{ log.level }}</span>
+                                        {% elif log.level == 'WARNING' %}
+                                            <span class="badge bg-warning">{{ log.level }}</span>
+                                        {% elif log.level == 'ERROR' %}
+                                            <span class="badge bg-danger">{{ log.level }}</span>
+                                        {% elif log.level == 'CRITICAL' %}
+                                            <span class="badge bg-dark">{{ log.level }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ log.level }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ log.task }}</td>
+                                    <td>{{ log.message }}</td>
+                                    <td>
+                                        {% if log.details %}
+                                            <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#detailsModal{{ loop.index }}">
+                                                Detalhes
+                                            </button>
+                                            
+                                            <!-- Modal para detalhes -->
+                                            <div class="modal fade" id="detailsModal{{ loop.index }}" tabindex="-1" aria-labelledby="detailsModalLabel{{ loop.index }}" aria-hidden="true">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title" id="detailsModalLabel{{ loop.index }}">Detalhes do Log</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <table class="table table-sm">
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th>Chave</th>
+                                                                        <th>Valor</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {% for key, value in log.details.items() %}
+                                                                        <tr>
+                                                                            <td>{{ key }}</td>
+                                                                            <td>{{ value }}</td>
+                                                                        </tr>
+                                                                    {% endfor %}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted">Nenhum</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer">
+                <nav aria-label="Navegação de páginas">
+                    <ul class="pagination justify-content-center mb-0">
+                        {% if page > 1 %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('view_logs', level=level, task=task, date=date, page=page-1) }}">Anterior</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">Anterior</span>
+                            </li>
+                        {% endif %}
+                        
+                        {% for p in range((page-2) if (page-2) > 0 else 1, (page+3) if (page+3) <= total_pages+1 else total_pages+1) %}
+                            <li class="page-item {% if p == page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('view_logs', level=level, task=task, date=date, page=p) }}">{{ p }}</a>
+                            </li>
+                        {% endfor %}
+                        
+                        {% if page < total_pages %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('view_logs', level=level, task=task, date=date, page=page+1) }}">Próxima</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">Próxima</span>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            {% if log_files_exist %}
+                Nenhum log encontrado para os filtros selecionados.
+            {% else %}
+                Nenhum arquivo de log encontrado. Clique em "Gerar Log de Teste" para criar alguns logs de exemplo.
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Botão para gerar logs de teste
+        const generateTestLogBtn = document.getElementById('generateTestLog');
+        if (generateTestLogBtn) {
+            generateTestLogBtn.addEventListener('click', function() {
+                fetch('{{ url_for("generate_test_log") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Logs de teste gerados com sucesso! Atualize a página para visualizá-los.');
+                        window.location.reload();
+                    } else {
+                        alert('Erro ao gerar logs de teste: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    alert('Erro ao gerar logs de teste. Verifique o console para mais detalhes.');
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}

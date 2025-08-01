@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Gerenciar Usuários Hotspot{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header bg-primary">
+        <h5><i class="bi bi-people"></i> Usuários Cadastrados</h5>
+        <a href="{{ url_for('add_user') }}" class="btn" style="padding: 4px 8px; background-color: rgba(255, 255, 255, 0.2);">
+            <i class="bi bi-person-plus"></i> Novo Usuário
+        </a>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome de Usuário</th>
+                        <th>Turma</th>
+                        <th>Perfil</th>
+                        <th>Status</th>
+                        <th>Consumo Hoje</th>
+                        <th>Crédito Acumulado</th>
+                        <th>Progresso</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if users %}
+                        {% for user in users %}
+                        <tr {% if user.limit_reached %}class="limit-reached"{% elif user.approaching_limit %}class="approaching-limit"{% endif %}>
+                            <td>
+                                <strong>{{ user.get('name', 'N/A') }}</strong>
+                            </td>
+                            <td>
+                                {% set user_profile = user.get('user_profile') %}
+                                {% if user_profile and user_profile.class_ref %}
+                                    <span class="badge bg-success">
+                                        {{ user_profile.class_ref.name }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-warning">Sem Turma</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <code>{{ user.get('profile', 'N/A') }}</code>
+                            </td>
+                            <td>
+                                {% if user.get('disabled', 'false') == 'true' %}
+                                    <span class="badge bg-danger">
+                                        <i class="bi bi-x-circle"></i> Desativado
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-success">
+                                        <i class="bi bi-check-circle"></i> Ativo
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="usage-info">
+                                    <strong>{{ user.daily_usage_mb }} MB</strong>
+                                    {% if user.limit_reached %}
+                                        <span class="badge bg-danger">Limite atingido</span>
+                                    {% elif user.approaching_limit %}
+                                        <span class="badge bg-warning">Próximo ao limite</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="credit-info">
+                                    {% if user.accumulated_credit_mb > 0 %}
+                                        <span class="badge bg-info">
+                                            <i class="bi bi-plus-circle"></i> {{ user.accumulated_credit_mb }} MB
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted">0 MB</span>
+                                    {% endif %}
+                                    <br>
+                                    <small class="text-muted">Disponível: {{ user.available_credit_mb }} MB</small>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="progress-container">
+                                    {% set usage_percent = (user.daily_usage_mb / user.available_credit_mb * 100) if user.available_credit_mb > 0 else 0 %}
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: {{ usage_percent|round }}%"></div>
+                                    </div>
+                                    <small class="progress-text">{{ usage_percent|round }}% usado</small>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1 flex-wrap">
+                                    <a href="{{ url_for('edit_user', username=user.get('name', '')) }}" 
+                                       class="btn btn-outline-primary btn-sm" 
+                                       title="Editar usuário">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    
+                                    <a href="{{ url_for('toggle_user', username=user.get('name', '')) }}" 
+                                       class="btn btn-outline-warning btn-sm" 
+                                       onclick="return confirm('Tem certeza que deseja {{ 'ativar' if user.get('disabled', 'false') == 'true' else 'desativar' }} este usuário?')"
+                                       title="{{ 'Ativar' if user.get('disabled', 'false') == 'true' else 'Desativar' }} usuário">
+                                        <i class="bi {{ 'bi-toggle-off' if user.get('disabled', 'false') == 'true' else 'bi-toggle-on' }}"></i>
+                                    </a>
+                                    
+                                    <a href="{{ url_for('delete_user', username=user.get('name', '')) }}" 
+                                       class="btn btn-outline-danger btn-sm" 
+                                       onclick="return confirm('Tem certeza que deseja excluir este usuário?')"
+                                       title="Excluir usuário">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center">Nenhum usuário encontrado</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+    .badge {
+        display: inline-block;
+        padding: 0.25em 0.6em;
+        font-size: 75%;
+        font-weight: 700;
+        line-height: 1;
+        text-align: center;
+        white-space: nowrap;
+        vertical-align: baseline;
+        border-radius: 0.25rem;
+        margin-left: 5px;
+    }
+    
+    .bg-success {
+        background-color: var(--success-color);
+        color: white;
+    }
+    
+    .bg-danger {
+        background-color: var(--danger-color);
+        color: white;
+    }
+    
+    .bg-warning {
+        background-color: var(--warning-color);
+        color: white;
+    }
+    
+    .bg-info {
+        background-color: var(--info-color);
+        color: white;
+    }
+    
+    .text-center {
+        text-align: center;
+    }
+    
+    .limit-reached {
+        background-color: rgba(240, 82, 82, 0.1);
+    }
+    
+    .approaching-limit {
+        background-color: rgba(255, 90, 31, 0.1);
+    }
+    
+    .usage-info {
+        text-align: center;
+    }
+    
+    .credit-info {
+        text-align: center;
+        min-width: 120px;
+    }
+    
+    .progress-container {
+        text-align: center;
+        min-width: 100px;
+    }
+    
+    .progress-bar {
+        width: 100%;
+        height: 8px;
+        background-color: #e9ecef;
+        border-radius: 4px;
+        margin: 2px 0;
+        overflow: hidden;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #28a745 0%, #ffc107 70%, #dc3545 100%);
+        transition: width 0.3s ease;
+        border-radius: 4px;
+    }
+    
+    .progress-text {
+        font-size: 0.75rem;
+        color: #6c757d;
+    }
+    
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+    
+    code {
+        background-color: #f8f9fa;
+        padding: 0.2rem 0.4rem;
+        border-radius: 0.25rem;
+        font-size: 0.875em;
+    }
+    
+    .text-muted {
+        color: #6c757d !important;
+    }
+</style>
+{% endblock %}

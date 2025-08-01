@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - FLCOMM HOTSPOT MANAGER</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card slide-in-up">
+            <div class="auth-header">
+                <div class="auth-logo">FLCOMM HOTSPOT MANAGER</div>
+                <div class="auth-subtitle">Faça login para acessar o painel</div>
+                <button id="theme-toggle" class="theme-toggle" style="position: absolute; top: 10px; right: 10px;" title="Alternar tema">
+                    <i id="theme-icon" class="bi bi-moon"></i>
+                </button>
+            </div>
+            
+            <div class="auth-body">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert {% if category == 'success' %}success{% elif category == 'danger' %}alert{% else %}info{% endif %}">
+                                {{ message }}
+                                <button type="button" class="close-alert">&times;</button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                <form method="POST" action="{{ url_for('login') }}">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        <label for="username" class="form-label">{{ form.username.label }}</label>
+                        {{ form.username(class="form-control", id="username", placeholder="Digite seu nome de usuário") }}
+                        {% if form.username.errors %}
+                            <div class="alert">
+                                {% for error in form.username.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">{{ form.password.label }}</label>
+                        {{ form.password(class="form-control", id="password", placeholder="Digite sua senha") }}
+                        {% if form.password.errors %}
+                            <div class="alert">
+                                {% for error in form.password.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        {{ form.submit(class="btn") }}
+                    </div>
+                </form>
+            </div>
+            
+            <div class="auth-footer">
+                Primeira vez? <a href="{{ url_for('register') }}">Registre-se</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Fechar alertas
+        document.querySelectorAll('.close-alert').forEach(function(button) {
+            button.addEventListener('click', function() {
+                const alert = this.parentElement;
+                alert.style.opacity = '0';
+                alert.style.transform = 'translateY(-10px)';
+                setTimeout(function() {
+                    alert.style.display = 'none';
+                }, 300);
+            });
+        });
+    </script>
+</body>
+</html>

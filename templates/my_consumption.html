@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block page_title %}Meu Consumo{% endblock %}
+
+{% block content %}
+{% if error %}
+<div class="alert alert-warning">
+    <i class="fas fa-exclamation-triangle"></i> {{ error }}
+</div>
+{% else %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-pie"></i> Consumo Atual</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Usuário Hotspot:</strong> {{ username }}</p>
+                <p><strong>Empresa:</strong> {{ company.name }}</p>
+                <hr>
+                <div class="row">
+                    <div class="col-6">
+                        <h6>Dados Consumidos</h6>
+                        <h4 class="text-primary">{{ consumption.total_data }}</h4>
+                    </div>
+                    <div class="col-6">
+                        <h6>Tempo Online</h6>
+                        <h4 class="text-success">{{ consumption.total_time }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-coins"></i> Créditos Disponíveis</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6">
+                        <h6>Crédito de Dados</h6>
+                        <h4 class="text-info">{{ consumption.data_credit }}</h4>
+                    </div>
+                    <div class="col-6">
+                        <h6>Crédito de Tempo</h6>
+                        <h4 class="text-warning">{{ consumption.time_credit }}</h4>
+                    </div>
+                </div>
+                <hr>
+                <small class="text-muted">
+                    Os créditos são adicionados ao seu limite padrão e podem ser utilizados quando necessário.
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-history"></i> Histórico de Uso (Últimos 30 dias)</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center">
+                    <p class="text-muted">Gráfico de consumo será exibido aqui</p>
+                    <button class="btn btn-outline-primary" onclick="location.reload()">
+                        <i class="fas fa-sync-alt"></i> Atualizar Dados
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

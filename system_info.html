@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}Informações do Sistema{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="mt-4 mb-4">Informações do Sistema</h1>
+    
+    {% if date_warning %}
+        <div class="alert alert-danger">
+            <strong>Atenção!</strong> {{ date_warning }}
+            <p>Por favor, corrija a data do sistema para garantir o funcionamento correto do aplicativo.</p>
+        </div>
+    {% endif %}
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Data e Hora</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Data e Hora do Sistema</h6>
+                    <p>{{ system_date.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                </div>
+                <div class="col-md-6">
+                    <h6>Timezone da Aplicação</h6>
+                    <p>{{ app_timezone }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Instruções para Corrigir a Data</h5>
+        </div>
+        <div class="card-body">
+            <h6>Linux</h6>
+            <pre>sudo date -s "YYYY-MM-DD HH:MM:SS"</pre>
+            <p>Exemplo: <code>sudo date -s "2024-05-19 14:30:00"</code></p>
+            
+            <h6>Windows</h6>
+            <p>1. Clique com o botão direito no relógio na barra de tarefas</p>
+            <p>2. Selecione "Ajustar data/hora"</p>
+            <p>3. Desative "Definir hora automaticamente" se estiver ativado</p>
+            <p>4. Clique em "Alterar" e defina a data e hora corretas</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

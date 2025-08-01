@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Editar Usuário do Sistema{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6 mx-auto">
+        <div class="card">
+            <div class="card-header bg-primary">
+                <h5><i class="bi bi-pencil-square"></i> Editar Usuário do Sistema</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('edit_system_user', user_id=admin.id) }}">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        <label for="username" class="form-label">{{ form.username.label }}</label>
+                        {{ form.username(class="form-control", id="username", placeholder="Digite o nome de usuário do sistema") }}
+                        {% if form.username.errors %}
+                            <div class="alert alert-danger mt-1">
+                                {% for error in form.username.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="email" class="form-label">{{ form.email.label }}</label>
+                        {{ form.email(class="form-control", id="email", placeholder="Digite o email") }}
+                        {% if form.email.errors %}
+                            <div class="alert alert-danger mt-1">
+                                {% for error in form.email.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="hotspot_username" class="form-label">{{ form.hotspot_username.label }}</label>
+                        {{ form.hotspot_username(class="form-control", id="hotspot_username", placeholder="Opcional: Nome de usuário Hotspot para vincular") }}
+                        <div class="form-text text-muted">
+                            Se preenchido, este usuário do sistema poderá ver o consumo do usuário Hotspot correspondente.
+                        </div>
+                        {% if form.hotspot_username.errors %}
+                            <div class="alert alert-danger mt-1">
+                                {% for error in form.hotspot_username.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">{{ form.password.label }}</label>
+                        {{ form.password(class="form-control", id="password", placeholder="Deixe em branco para manter a senha atual") }}
+                        {% if form.password.errors %}
+                            <div class="alert alert-danger mt-1">
+                                {% for error in form.password.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="confirm_password" class="form-label">{{ form.confirm_password.label }}</label>
+                        {{ form.confirm_password(class="form-control", id="confirm_password", placeholder="Confirme a nova senha (se alterada)") }}
+                        {% if form.confirm_password.errors %}
+                            <div class="alert alert-danger mt-1">
+                                {% for error in form.confirm_password.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="role" class="form-label">{{ form.role.label }}</label>
+                        {{ form.role(class="form-select", id="role") }}
+                        {% if form.role.errors %}
+                            <div class="alert alert-danger mt-1">
+                                {% for error in form.role.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.companies.label }}</label>
+                        <div class="form-check-list">
+                            {% for subfield in form.companies %}
+                                <div class="form-check">
+                                    {{ subfield(class="form-check-input") }}
+                                    <label class="form-check-label" for="{{ subfield.id }}">
+                                        {{ subfield.label }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% if form.companies.errors %}
+                            <div class="alert alert-danger mt-1">
+                                {% for error in form.companies.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('manage_system_users') }}" class="btn btn-outline-primary">
+                            <i class="bi bi-arrow-left"></i> Voltar
+                        </a>
+                        {{ form.submit(class="btn btn-primary", value="Atualizar") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

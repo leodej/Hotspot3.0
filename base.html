@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block page_title %}FLCOMM HOTSPOT MANAGER{% endblock %}</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+      body {
+          display: flex;
+          min-height: 100vh;
+          background-color: #f8f9fa; /* Light gray background */
+      }
+      #sidebar {
+          width: 250px;
+          background-color: #343a40; /* Dark sidebar */
+          color: white;
+          flex-shrink: 0;
+          padding-top: 20px;
+          transition: all 0.3s;
+      }
+      #sidebar.collapsed {
+          margin-left: -250px;
+      }
+      #content {
+          flex-grow: 1;
+          padding: 20px;
+          background-color: #f8f9fa;
+      }
+      .sidebar-header {
+          padding: 10px 20px;
+          text-align: center;
+          margin-bottom: 20px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .sidebar-header h3 {
+          color: #fff;
+          margin-bottom: 0;
+      }
+      .sidebar-menu .nav-link {
+          color: #adb5bd; /* Lighter gray for links */
+          padding: 10px 20px;
+          display: flex;
+          align-items: center;
+      }
+      .sidebar-menu .nav-link:hover, .sidebar-menu .nav-link.active {
+          background-color: #495057; /* Darker on hover/active */
+          color: #fff;
+      }
+      .sidebar-menu .nav-link i {
+          margin-right: 10px;
+          font-size: 1.1rem;
+      }
+      .navbar {
+          background-color: #fff;
+          border-bottom: 1px solid #dee2e6;
+          padding: 10px 20px;
+      }
+      .navbar .btn {
+          color: #343a40;
+          border-color: #343a40;
+      }
+      .navbar .btn:hover {
+          background-color: #343a40;
+          color: #fff;
+      }
+      .flash-messages {
+          margin-top: 20px;
+      }
+      .card-header {
+          background-color: #007bff; /* Primary blue for card headers */
+          color: white;
+      }
+      .stats-card {
+          background-color: #fff;
+          border-radius: 8px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          padding: 20px;
+          display: flex;
+          align-items: center;
+          margin-bottom: 20px;
+      }
+      .stats-card .stats-icon {
+          font-size: 2.5rem;
+          color: #007bff;
+          margin-right: 15px;
+      }
+      .stats-card .stats-icon.success { color: #28a745; }
+      .stats-card .stats-icon.warning { color: #ffc107; }
+      .stats-card .stats-icon.danger { color: #dc3545; }
+      .stats-card .stats-details .stats-title {
+          font-size: 0.9rem;
+          color: #6c757d;
+          margin-bottom: 5px;
+      }
+      .stats-card .stats-details .stats-value {
+          font-size: 1.5rem;
+          font-weight: bold;
+          color: #343a40;
+      }
+      .form-check-list {
+          max-height: 150px;
+          overflow-y: auto;
+          border: 1px solid #ced4da;
+          border-radius: 0.25rem;
+          padding: 0.5rem;
+          background-color: #f8f9fa;
+      }
+      .form-check-list .form-check {
+          margin-bottom: 0.25rem;
+      }
+  </style>
+</head>
+<body>
+  <div id="sidebar">
+      <div class="sidebar-header">
+          <h3>FLCOMM HOTSPOT</h3>
+      </div>
+      <ul class="list-unstyled sidebar-menu">
+          {% if session.get('user_id') %}
+              {% if session.get('role') == 'admin' %}
+              <li>
+                  <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+                      <i class="bi bi-speedometer2"></i> Dashboard
+                  </a>
+              </li>
+              <li>
+                  <a href="{{ url_for('manage_users') }}" class="nav-link {% if request.endpoint == 'manage_users' or request.endpoint == 'add_user' or request.endpoint == 'edit_user' %}active{% endif %}">
+                      <i class="bi bi-person-lines-fill"></i> Usuários Hotspot
+                  </a>
+              </li>
+              <li>
+                  <a href="{{ url_for('reports') }}" class="nav-link {% if request.endpoint == 'reports' %}active{% endif %}">
+                      <i class="bi bi-graph-up"></i> Relatórios
+                  </a>
+              </li>
+              <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle {% if request.endpoint in ['manage_system_users', 'add_system_user', 'edit_system_user', 'companies', 'add_company', 'edit_company', 'scheduler_status', 'view_logs', 'system_info'] %}active{% endif %}" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                      <i class="bi bi-gear"></i> Administração
+                  </a>
+                  <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="adminDropdown">
+                      <li><a class="dropdown-item {% if request.endpoint == 'manage_system_users' %}active{% endif %}" href="{{ url_for('manage_system_users') }}">Gerenciar Usuários do Sistema</a></li>
+                      <li><a class="dropdown-item {% if request.endpoint == 'companies' %}active{% endif %}" href="{{ url_for('companies') }}">Gerenciar Empresas</a></li>
+                      <li><a class="dropdown-item {% if request.endpoint == 'scheduler_status' %}active{% endif %}" href="{{ url_for('scheduler_status') }}">Status do Agendador</a></li>
+                      <li><a class="dropdown-item {% if request.endpoint == 'view_logs' %}active{% endif %}" href="{{ url_for('view_logs') }}">Logs do Sistema</a></li>
+                      <li><a class="dropdown-item {% if request.endpoint == 'system_info' %}active{% endif %}" href="{{ url_for('system_info') }}">Informações do Sistema</a></li>
+                  </ul>
+              </li>
+              {% else %} {# Regular user #}
+              <li>
+                  <a href="{{ url_for('my_consumption') }}" class="nav-link {% if request.endpoint == 'my_consumption' %}active{% endif %}">
+                      <i class="bi bi-bar-chart-line"></i> Meu Consumo
+                  </a>
+              </li>
+              <li>
+                  <a href="{{ url_for('change_password') }}" class="nav-link {% if request.endpoint == 'change_password' %}active{% endif %}">
+                      <i class="bi bi-key"></i> Alterar Senha
+                  </a>
+              </li>
+              {% endif %}
+              <li>
+                  <a href="{{ url_for('logout') }}" class="nav-link">
+                      <i class="bi bi-box-arrow-right"></i> Sair
+                  </a>
+              </li>
+          {% else %}
+          <li>
+              <a href="{{ url_for('login') }}" class="nav-link {% if request.endpoint == 'login' %}active{% endif %}">
+                  <i class="bi bi-box-arrow-in-right"></i> Login
+              </a>
+          </li>
+          {% endif %}
+      </ul>
+  </div>
+
+  <div id="content">
+      <nav class="navbar navbar-expand-lg">
+          <div class="container-fluid">
+              <button type="button" id="sidebarCollapse" class="btn btn-outline-dark me-3">
+                  <i class="bi bi-list"></i>
+              </button>
+              <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+                  <i class="bi bi-wifi"></i> FLCOMM HOTSPOT MANAGER
+              </a>
+              <div class="collapse navbar-collapse" id="navbarNav">
+                  <ul class="navbar-nav ms-auto">
+                      {% if session.get('user_id') %}
+                      <li class="nav-item dropdown">
+                          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                              <i class="bi bi-person-circle"></i> {{ session.get('username') }} ({{ session.get('role') | capitalize }})
+                          </a>
+                          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                              {% if current_user and current_user.role == 'admin' %}
+                                  <li><a class="dropdown-item" href="{{ url_for('edit_system_user', user_id=session.get('user_id')) }}">Meu Perfil</a></li>
+                              {% endif %}
+                              <li><a class="dropdown-item" href="{{ url_for('logout') }}">Sair</a></li>
+                          </ul>
+                      </li>
+                      {% if all_companies_for_user %}
+                      <li class="nav-item dropdown ms-3">
+                          <a class="nav-link dropdown-toggle btn btn-outline-secondary" href="#" id="companyDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                              <i class="bi bi-building"></i> {{ current_company.name if current_company else 'Selecionar Empresa' }}
+                          </a>
+                          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="companyDropdown">
+                              {% for company in all_companies_for_user %}
+                                  <li><a class="dropdown-item {% if current_company and current_company.id == company.id %}active{% endif %}" href="{{ url_for('select_company', company_id=company.id) }}">{{ company.name }}</a></li>
+                              {% endfor %}
+                          </ul>
+                      </li>
+                      {% endif %}
+                      {% endif %}
+                  </ul>
+              </div>
+          </div>
+      </nav>
+
+      <div class="flash-messages">
+          {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                  {% for category, message in messages %}
+                      <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                          {{ message }}
+                          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                      </div>
+                  {% endfor %}
+              {% endif %}
+          {% endwith %}
+      </div>
+
+      {% block content %}{% endblock %}
+  </div>
+
+  <!-- Bootstrap JS Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+      document.getElementById('sidebarCollapse').addEventListener('click', function() {
+          document.getElementById('sidebar').classList.toggle('collapsed');
+          document.getElementById('content').classList.toggle('collapsed');
+      });
+  </script>
+</body>
+</html>

@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Editar Empresa{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5><i class="bi bi-pencil"></i> Editar Empresa: {{ company.name }}</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                {{ form.csrf_token }}
+                <div class="mb-3">
+                    <label for="name" class="form-label">{{ form.name.label }}</label>
+                    {{ form.name(class="form-control") }}
+                    {% if form.name.errors %}
+                        <div class="text-danger">
+                            {% for error in form.name.errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="mb-3">
+                    <label for="mikrotik_host" class="form-label">{{ form.mikrotik_host.label }}</label>
+                    {{ form.mikrotik_host(class="form-control") }}
+                    {% if form.mikrotik_host.errors %}
+                        <div class="text-danger">
+                            {% for error in form.mikrotik_host.errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="mb-3">
+                    <label for="mikrotik_user" class="form-label">{{ form.mikrotik_user.label }}</label>
+                    {{ form.mikrotik_user(class="form-control") }}
+                    {% if form.mikrotik_user.errors %}
+                        <div class="text-danger">
+                            {% for error in form.mikrotik_user.errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="mb-3">
+                    <label for="mikrotik_password" class="form-label">{{ form.mikrotik_password.label }}</label>
+                    {{ form.mikrotik_password(class="form-control", placeholder="Deixe em branco para manter a senha atual") }}
+                    {% if form.mikrotik_password.errors %}
+                        <div class="text-danger">
+                            {% for error in form.mikrotik_password.errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="mb-3">
+                    <label for="daily_limit_mb" class="form-label">{{ form.daily_limit_mb.label }}</label>
+                    {{ form.daily_limit_mb(class="form-control") }}
+                    <div class="form-text">Limite de consumo diário em Megabytes (MB) para usuários hotspot.</div>
+                    {% if form.daily_limit_mb.errors %}
+                        <div class="text-danger">
+                            {% for error in form.daily_limit_mb.errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="mb-3">
+                    <label for="limited_profile" class="form-label">{{ form.limited_profile.label }}</label>
+                    {{ form.limited_profile(class="form-control") }}
+                    <div class="form-text">Nome do perfil no MikroTik para usuários que atingirem o limite.</div>
+                    {% if form.limited_profile.errors %}
+                        <div class="text-danger">
+                            {% for error in form.limited_profile.errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="mb-3">
+                    <label for="default_profile" class="form-label">{{ form.default_profile.label }}</label>
+                    {{ form.default_profile(class="form-control") }}
+                    <div class="form-text">Nome do perfil no MikroTik para restaurar usuários no início do dia.</div>
+                    {% if form.default_profile.errors %}
+                        <div class="text-danger">
+                            {% for error in form.default_profile.errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Atualizar</button>
+                <a href="{{ url_for('companies') }}" class="btn btn-secondary"><i class="bi bi-x-circle"></i> Cancelar</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

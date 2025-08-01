@@ -1,0 +1,353 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Meu Consumo{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5><i class="bi bi-bar-chart-line"></i> Meu Consumo - {{ username }} ({{ current_company.name }})</h5>
+        </div>
+        <div class="card-body">
+            {% if no_hotspot_link %}
+            <div class="alert alert-warning" role="alert">
+                <i class="bi bi-exclamation-triangle"></i>
+                Sua conta do sistema não está vinculada a um usuário Hotspot. Por favor, entre em contato com o administrador para vincular seu usuário Hotspot e visualizar seu consumo.
+            </div>
+            {% else %}
+            
+            <!-- Informações de Crédito -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="credit-summary-card">
+                        <div class="credit-header">
+                            <h6><i class="bi bi-wallet2"></i> Resumo de Créditos</h6>
+                        </div>
+                        <div class="credit-details">
+                            <div class="credit-item">
+                                <div class="credit-label">Limite Diário Base</div>
+                                <div class="credit-value base">{{ daily_limit }} MB</div>
+                            </div>
+                            <div class="credit-item">
+                                <div class="credit-label">Crédito Acumulado</div>
+                                <div class="credit-value accumulated">
+                                    {% if accumulated_credit_mb > 0 %}
+                                        +{{ accumulated_credit_mb }} MB
+                                        <small class="text-success"><i class="bi bi-arrow-up"></i> Bônus</small>
+                                    {% else %}
+                                        0 MB
+                                        <small class="text-muted">Sem acúmulo</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="credit-item total">
+                                <div class="credit-label">Total Disponível Hoje</div>
+                                <div class="credit-value available">{{ available_credit_mb }} MB</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Barra de Progresso do Consumo -->
+                        <div class="usage-progress">
+                            {% set usage_percent = (total_daily_mb / available_credit_mb * 100) if available_credit_mb > 0 else 0 %}
+                            <div class="progress-header">
+                                <span>Consumo Atual: {{ total_daily_mb }} MB</span>
+                                <span>{{ usage_percent|round(1) }}% usado</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {{ usage_percent|round }}%"></div>
+                            </div>
+                            <div class="progress-footer">
+                                <span class="remaining">
+                                    Restante: {{ (available_credit_mb - total_daily_mb)|round(1) }} MB
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cards de Estatísticas -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="stats-card daily">
+                        <div class="stats-icon">
+                            <i class="bi bi-calendar-day"></i>
+                        </div>
+                        <div class="stats-details">
+                            <div class="stats-title">Consumo Diário</div>
+                            <div class="stats-value">{{ total_daily_mb }} MB</div>
+                            <div class="stats-info">
+                                {% if usage_percent >= 90 %}
+                                    <span class="text-danger"><i class="bi bi-exclamation-triangle"></i> Próximo ao limite</span>
+                                {% elif usage_percent >= 70 %}
+                                    <span class="text-warning"><i class="bi bi-info-circle"></i> Atenção ao consumo</span>
+                                {% else %}
+                                    <span class="text-success"><i class="bi bi-check-circle"></i> Consumo normal</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="stats-card monthly">
+                        <div class="stats-icon">
+                            <i class="bi bi-calendar-month"></i>
+                        </div>
+                        <div class="stats-details">
+                            <div class="stats-title">Consumo Mensal</div>
+                            <div class="stats-value">
+                                {% if total_monthly_mb is defined %}
+                                    {{ total_monthly_mb }} MB
+                                {% else %}
+                                    {{ total_daily_mb|default(0) * 30 }} MB <small class="text-muted">(estimado)</small>
+                                {% endif %}
+                            </div>
+                            <div class="stats-info">
+                                {% set days_in_month = 30 %}
+                                {% set avg_daily = ((total_monthly_mb if total_monthly_mb is defined else total_daily_mb|default(0) * 30) / days_in_month)|round(1) %}
+                                Média diária: {{ avg_daily }} MB
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráfico de Tendência -->
+            <div class="chart-section">
+                <h5 class="mb-3">
+                    <i class="bi bi-graph-up"></i> Tendência de Consumo Semanal
+                    <small class="text-muted">- Últimos 7 dias</small>
+                </h5>
+                <div class="chart-container">
+                    <img src="data:image/png;base64,{{ weekly_chart }}" alt="Gráfico de Consumo Semanal" class="img-fluid">
+                </div>
+            </div>
+
+            <!-- Dicas de Economia -->
+            {% if usage_percent > 70 %}
+            <div class="tips-section mt-4">
+                <div class="alert alert-info">
+                    <h6><i class="bi bi-lightbulb"></i> Dicas para Economizar Dados</h6>
+                    <ul class="mb-0">
+                        <li>Evite assistir vídeos em alta qualidade</li>
+                        <li>Desative atualizações automáticas de aplicativos</li>
+                        <li>Use Wi-Fi sempre que possível</li>
+                        <li>Monitore aplicativos que consomem muitos dados</li>
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+    .credit-summary-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 15px;
+        padding: 20px;
+        color: white;
+        margin-bottom: 20px;
+    }
+    
+    .credit-header h6 {
+        margin: 0;
+        font-weight: 600;
+        opacity: 0.9;
+    }
+    
+    .credit-details {
+        display: flex;
+        justify-content: space-between;
+        margin: 15px 0;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .credit-item {
+        text-align: center;
+        flex: 1;
+        min-width: 120px;
+    }
+    
+    .credit-item.total {
+        border-left: 2px solid rgba(255,255,255,0.3);
+        border-right: 2px solid rgba(255,255,255,0.3);
+        padding: 0 15px;
+    }
+    
+    .credit-label {
+        font-size: 0.85rem;
+        opacity: 0.8;
+        margin-bottom: 5px;
+    }
+    
+    .credit-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    
+    .credit-value.base {
+        color: #ffd700;
+    }
+    
+    .credit-value.accumulated {
+        color: #90EE90;
+    }
+    
+    .credit-value.available {
+        color: #87CEEB;
+        font-size: 1.8rem;
+    }
+    
+    .usage-progress {
+        margin-top: 20px;
+    }
+    
+    .progress-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+    
+    .progress-bar {
+        width: 100%;
+        height: 12px;
+        background-color: rgba(255,255,255,0.2);
+        border-radius: 6px;
+        overflow: hidden;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #28a745 0%, #ffc107 70%, #dc3545 100%);
+        border-radius: 6px;
+        transition: width 0.5s ease;
+    }
+    
+    .progress-footer {
+        text-align: center;
+        margin-top: 8px;
+        font-size: 0.85rem;
+        opacity: 0.8;
+    }
+    
+    .stats-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        border-left: 4px solid;
+        transition: transform 0.2s ease;
+    }
+    
+    .stats-card:hover {
+        transform: translateY(-2px);
+    }
+    
+    .stats-card.daily {
+        border-left-color: #007bff;
+    }
+    
+    .stats-card.monthly {
+        border-left-color: #28a745;
+    }
+    
+    .stats-card {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .stats-icon {
+        font-size: 2.5rem;
+        opacity: 0.7;
+    }
+    
+    .stats-card.daily .stats-icon {
+        color: #007bff;
+    }
+    
+    .stats-card.monthly .stats-icon {
+        color: #28a745;
+    }
+    
+    .stats-details {
+        flex: 1;
+    }
+    
+    .stats-title {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-bottom: 5px;
+    }
+    
+    .stats-value {
+        font-size: 1.8rem;
+        font-weight: bold;
+        color: #2c3e50;
+        margin-bottom: 5px;
+    }
+    
+    .stats-info {
+        font-size: 0.85rem;
+    }
+    
+    .chart-section {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .chart-container {
+        text-align: center;
+        padding: 10px;
+    }
+    
+    .tips-section .alert {
+        border-radius: 12px;
+        border: none;
+        background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    }
+    
+    .tips-section h6 {
+        color: #1976d2;
+        margin-bottom: 10px;
+    }
+    
+    .tips-section ul {
+        padding-left: 20px;
+    }
+    
+    .tips-section li {
+        margin-bottom: 5px;
+        color: #424242;
+    }
+    
+    @media (max-width: 768px) {
+        .credit-details {
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        .credit-item.total {
+            border: none;
+            border-top: 2px solid rgba(255,255,255,0.3);
+            border-bottom: 2px solid rgba(255,255,255,0.3);
+            padding: 15px 0;
+        }
+        
+        .stats-card {
+            margin-bottom: 15px;
+        }
+    }
+</style>
+{% endblock %}

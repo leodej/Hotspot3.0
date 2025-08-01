@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Gerenciar Usuários do Sistema{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3><i class="bi bi-people"></i> Gerenciar Usuários do Sistema</h3>
+        <a href="{{ url_for('add_system_user') }}" class="btn btn-primary">
+            <i class="bi bi-person-plus"></i> Adicionar Usuário
+        </a>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Filtros e Pesquisa</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('manage_system_users') }}" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label for="search_username" class="form-label">Nome de Usuário do Sistema</label>
+                    <input type="text" class="form-control" id="search_username" name="search_username" value="{{ request.args.get('search_username', '') }}" placeholder="Pesquisar nome de usuário">
+                </div>
+                <div class="col-md-3">
+                    <label for="search_email" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="search_email" name="search_email" value="{{ request.args.get('search_email', '') }}" placeholder="Pesquisar email">
+                </div>
+                <div class="col-md-2">
+                    <label for="search_role" class="form-label">Função</label>
+                    <select class="form-select" id="search_role" name="search_role">
+                        <option value="">Todas</option>
+                        <option value="admin" {% if request.args.get('search_role') == 'admin' %}selected{% endif %}>Administrador</option>
+                        <option value="user" {% if request.args.get('search_role') == 'user' %}selected{% endif %}>Usuário</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="search_hotspot_username" class="form-label">Nome de Usuário Hotspot</label>
+                    <input type="text" class="form-control" id="search_hotspot_username" name="search_hotspot_username" value="{{ request.args.get('search_hotspot_username', '') }}" placeholder="Pesquisar usuário hotspot">
+                </div>
+                <div class="col-md-1">
+                    <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> Filtrar</button>
+                </div>
+                <div class="col-md-1">
+                    <a href="{{ url_for('manage_system_users') }}" class="btn btn-outline-secondary w-100"><i class="bi bi-x-circle"></i> Limpar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if has_filters %}
+    <div class="alert alert-info">
+        Filtros aplicados: {{ search_terms | join(', ') }}. Exibindo {{ filtered_count }} de {{ total_admins }} usuários.
+    </div>
+    {% endif %}
+
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <div class="stats-card">
+                <div class="stats-icon">
+                    <i class="bi bi-person-fill-gear"></i>
+                </div>
+                <div class="stats-details">
+                    <div class="stats-title">Total de Usuários do Sistema</div>
+                    <div class="stats-value">{{ total_admins }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card">
+                <div class="stats-icon success">
+                    <i class="bi bi-person-fill-check"></i>
+                </div>
+                <div class="stats-details">
+                    <div class="stats-title">Administradores</div>
+                    <div class="stats-value">{{ admin_count }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card">
+                <div class="stats-icon warning">
+                    <i class="bi bi-person-fill"></i>
+                </div>
+                <div class="stats-details">
+                    <div class="stats-title">Usuários Comuns</div>
+                    <div class="stats-value">{{ user_count }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead>
+                        <tr>
+                            <th>
+                                <a href="{{ url_for('manage_system_users', search_username=request.args.get('search_username', ''), search_email=request.args.get('search_email', ''), search_role=request.args.get('search_role', ''), search_hotspot_username=request.args.get('search_hotspot_username', ''), sort='username', order='{% if sort_field == "username" and sort_order == "asc" %}desc{% else %}asc{% endif %}') }}">
+                                    Nome de Usuário do Sistema
+                                    {% if sort_field == 'username' %}
+                                        {% if sort_order == 'asc' %}<i class="bi bi-sort-alpha-down"></i>{% else %}<i class="bi bi-sort-alpha-up"></i>{% endif %}
+                                    {% endif %}
+                                </a>
+                            </th>
+                            <th>
+                                <a href="{{ url_for('manage_system_users', search_username=request.args.get('search_username', ''), search_email=request.args.get('search_email', ''), search_role=request.args.get('search_role', ''), search_hotspot_username=request.args.get('search_hotspot_username', ''), sort='email', order='{% if sort_field == "email" and sort_order == "asc" %}desc{% else %}asc{% endif %}') }}">
+                                    Email
+                                    {% if sort_field == 'email' %}
+                                        {% if sort_order == 'asc' %}<i class="bi bi-sort-alpha-down"></i>{% else %}<i class="bi bi-sort-alpha-up"></i>{% endif %}
+                                    {% endif %}
+                                </a>
+                            </th>
+                            <th>
+                                <a href="{{ url_for('manage_system_users', search_username=request.args.get('search_username', ''), search_email=request.args.get('search_email', ''), search_role=request.args.get('search_role', ''), search_hotspot_username=request.args.get('search_hotspot_username', ''), sort='role', order='{% if sort_field == "role" and sort_order == "asc" %}desc{% else %}asc{% endif %}') }}">
+                                    Função
+                                    {% if sort_field == 'role' %}
+                                        {% if sort_order == 'asc' %}<i class="bi bi-sort-alpha-down"></i>{% else %}<i class="bi bi-sort-alpha-up"></i>{% endif %}
+                                    {% endif %}
+                                </a>
+                            </th>
+                            <th>
+                                <a href="{{ url_for('manage_system_users', search_username=request.args.get('search_username', ''), search_email=request.args.get('search_email', ''), search_role=request.args.get('search_role', ''), search_hotspot_username=request.args.get('search_hotspot_username', ''), sort='hotspot_username', order='{% if sort_field == "hotspot_username" and sort_order == "asc" %}desc{% else %}asc{% endif %}') }}">
+                                    Usuário Hotspot Vinculado
+                                    {% if sort_field == 'hotspot_username' %}
+                                        {% if sort_order == 'asc' %}<i class="bi bi-sort-alpha-down"></i>{% else %}<i class="bi bi-sort-alpha-up"></i>{% endif %}
+                                    {% endif %}
+                                </a>
+                            </th>
+                            <th>Empresas Acessíveis</th>
+                            <th>
+                                <a href="{{ url_for('manage_system_users', search_username=request.args.get('search_username', ''), search_email=request.args.get('search_email', ''), search_role=request.args.get('search_role', ''), search_hotspot_username=request.args.get('search_hotspot_username', ''), sort='created_at', order='{% if sort_field == "created_at" and sort_order == "asc" %}desc{% else %}asc{% endif %}') }}">
+                                    Criado Em
+                                    {% if sort_field == 'created_at' %}
+                                        {% if sort_order == 'asc' %}<i class="bi bi-sort-numeric-down"></i>{% else %}<i class="bi bi-sort-numeric-up"></i>{% endif %}
+                                    {% endif %}
+                                </a>
+                            </th>
+                            <th>
+                                <a href="{{ url_for('manage_system_users', search_username=request.args.get('search_username', ''), search_email=request.args.get('search_email', ''), search_role=request.args.get('search_role', ''), search_hotspot_username=request.args.get('search_hotspot_username', ''), sort='last_login', order='{% if sort_field == "last_login" and sort_order == "asc" %}desc{% else %}asc{% endif %}') }}">
+                                    Último Login
+                                    {% if sort_field == 'last_login' %}
+                                        {% if sort_order == 'asc' %}<i class="bi bi-sort-numeric-down"></i>{% else %}<i class="bi bi-sort-numeric-up"></i>{% endif %}
+                                    {% endif %}
+                                </a>
+                            </th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for admin in admins %}
+                        <tr>
+                            <td>{{ admin.username }}</td>
+                            <td>{{ admin.email }}</td>
+                            <td>
+                                {% if admin.role == 'admin' %}
+                                    <span class="badge bg-primary">Administrador</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Usuário</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ admin.hotspot_username if admin.hotspot_username else 'N/A' }}</td>
+                            <td>
+                                {% if admin.role == 'admin' %}
+                                    <span class="badge bg-success">Todas</span>
+                                {% else %}
+                                    {% if admin.companies %}
+                                        {% for company in admin.companies %}
+                                            <span class="badge bg-info me-1">{{ company.name }}</span>
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="badge bg-warning">Nenhuma</span>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                            <td>{{ admin.created_at.strftime('%d/%m/%Y %H:%M') if admin.created_at else 'N/A' }}</td>
+                            <td>{{ time_ago(admin.last_login) }}</td>
+                            <td>
+                                <a href="{{ url_for('edit_system_user', user_id=admin.id) }}" class="btn btn-sm btn-warning me-1" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                {% if admin.id != session.get('user_id') %}
+                                <a href="{{ url_for('delete_system_user', user_id=admin.id) }}" class="btn btn-sm btn-danger" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir este usuário do sistema?');">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                {% else %}
+                                <button class="btn btn-sm btn-danger" disabled title="Você não pode excluir seu próprio usuário.">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center">Nenhum usuário do sistema encontrado.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('manage_system_users', page=pagination.prev_num, search_username=request.args.get('search_username', ''), search_email=request.args.get('search_email', ''), search_role=request.args.get('search_role', ''), search_hotspot_username=request.args.get('search_hotspot_username', ''), sort=sort_field, order=sort_order) }}" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% for p in pagination.iter_pages() %}
+                        {% if p %}
+                            <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('manage_system_users', page=p, search_username=request.args.get('search_username', ''), search_email=request.args.get('search_email', ''), search_role=request.args.get('search_role', ''), search_hotspot_username=request.args.get('search_hotspot_username', ''), sort=sort_field, order=sort_order) }}">{{ p }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
+                        {% endif %}
+                    {% endfor %}
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('manage_system_users', page=pagination.next_num, search_username=request.args.get('search_username', ''), search_email=request.args.get('search_email', ''), search_role=request.args.get('search_role', ''), search_hotspot_username=request.args.get('search_hotspot_username', ''), sort=sort_field, order=sort_order) }}" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+{% endblock %}

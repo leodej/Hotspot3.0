@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Relatórios{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header bg-primary">
+        <h5><i class="bi bi-graph-up"></i> Relatórios de Consumo</h5>
+    </div>
+    <div class="card-body">
+        <!-- Filtros -->
+        <form method="GET" class="mb-4">
+            <div class="row">
+                <div class="col-md-3">
+                    <label for="period" class="form-label">Período</label>
+                    <select name="period" id="period" class="form-control">
+                        <option value="day" {% if period == 'day' %}selected{% endif %}>Diário</option>
+                        <option value="week" {% if period == 'week' %}selected{% endif %}>Semanal</option>
+                        <option value="month" {% if period == 'month' %}selected{% endif %}>Mensal</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="username" class="form-label">Usuário</label>
+                    <select name="username" id="username" class="form-control">
+                        <option value="">Todos os usuários</option>
+                        {% for user in users %}
+                            <option value="{{ user }}" {% if selected_user == user %}selected{% endif %}>{{ user }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Filtrar
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Gráfico -->
+        <div class="chart-section mb-4">
+            <img src="data:image/png;base64,{{ chart }}" alt="Gráfico de Consumo" class="img-fluid">
+        </div>
+
+        <!-- Tabela de Dados com Créditos -->
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Usuário</th>
+                        <th>Download (MB)</th>
+                        <th>Upload (MB)</th>
+                        <th>Total (MB)</th>
+                        <th>Crédito Disponível (MB)</th>
+                        <th>Crédito Acumulado (MB)</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for data in table_data %}
+                    <tr>
+                        <td><strong>{{ data.username }}</strong></td>
+                        <td>{{ data.download }}</td>
+                        <td>{{ data.upload }}</td>
+                        <td><strong>{{ data.total }}</strong></td>
+                        <td>
+                            <span class="badge bg-primary">{{ data.available_credit }}</span>
+                        </td>
+                        <td>
+                            {% if data.accumulated_credit > 0 %}
+                                <span class="badge bg-success">+{{ data.accumulated_credit }}</span>
+                            {% else %}
+                                <span class="text-muted">0</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% set usage_percent = (data.total / data.available_credit * 100) if data.available_credit > 0 else 0 %}
+                            {% if usage_percent >= 100 %}
+                                <span class="badge bg-danger">Limite Atingido</span>
+                            {% elif usage_percent >= 80 %}
+                                <span class="badge bg-warning">Próximo ao Limite</span>
+                            {% else %}
+                                <span class="badge bg-success">Normal</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Exportar PDF -->
+        <div class="mt-3">
+            <button onclick="exportToPDF()" class="btn btn-secondary">
+                <i class="bi bi-file-pdf"></i> Exportar PDF
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Dados para JavaScript -->
+<script>
+    const dateData = {{ date_data_json|safe }};
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/pdf-export.js') }}"></script>
+<style>
+    .chart-section {
+        text-align: center;
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .table th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+    }
+    
+    .badge {
+        font-size: 0.8rem;
+    }
+</style>
+{% endblock %}

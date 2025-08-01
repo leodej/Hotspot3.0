@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  mikrotik-manager:
+    build: .
+    container_name: mikrotik-manager-prod
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=${SECRET_KEY:-your-super-secret-key-change-this}
+      - DATABASE_URL=sqlite:///instance/mikrotik_manager.db
+    volumes:
+      - mikrotik_data:/app/instance
+      - mikrotik_logs:/app/logs
+      - mikrotik_uploads:/app/uploads
+    restart: unless-stopped
+    networks:
+      - mikrotik-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  nginx:
+    image: nginx:alpine
+    container_name: mikrotik-manager-nginx-prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - mikrotik-manager
+    restart: unless-stopped
+    networks:
+      - mikrotik-network
+
+networks:
+  mikrotik-network:
+    driver: bridge
+
+volumes:
+  mikrotik_data:
+    driver: local
+  mikrotik_logs:
+    driver: local
+  mikrotik_uploads:
+    driver: local

@@ -1,0 +1,55 @@
+{
+  "timestamp": "2025-06-08T19:50:14.889539",
+  "target_profiles": [
+    "127k-Limitado",
+    "500mb-dia"
+  ],
+  "target_users_count": 32,
+  "corrections_applied": [],
+  "final_status": {
+    "total_records": 666,
+    "records_today": 640,
+    "top_users_today": [
+      {
+        "username": "oqn.johnathas",
+        "mb": 8144
+      },
+      {
+        "username": "scm.euclides",
+        "mb": 7162
+      },
+      {
+        "username": "mnc.valdir",
+        "mb": 6646
+      },
+      {
+        "username": "ctr.wagner",
+        "mb": 3838
+      },
+      {
+        "username": "oqn.marcos",
+        "mb": 3574
+      },
+      {
+        "username": "aba.elioenai",
+        "mb": 2524
+      },
+      {
+        "username": "cdm.marcelo",
+        "mb": 1989
+      },
+      {
+        "username": "imt.elpidio",
+        "mb": 1283
+      },
+      {
+        "username": "taa.frank",
+        "mb": 1162
+      },
+      {
+        "username": "mnc.oziel",
+        "mb": 1130
+      }
+    ]
+  }
+}
