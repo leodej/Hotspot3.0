@@ -1,5 +1,5 @@
-from flask import session
-from models import Company, User, db
+from flask import session, current_app
+from models import Company, User, db, UserClass, Usage
 from datetime import datetime, timedelta
 import os
 import sys
@@ -12,6 +12,11 @@ import csv
 import shutil
 import sqlite3
 from logger import get_logger
+import platform
+import psutil
+import ipaddress
+import pytz
+from mikrotik_connection_manager import MikroTikConnectionManager
 
 logger = get_logger('helpers')
 
@@ -19,8 +24,11 @@ def check_system_date():
     """Verifica se a data do sistema está correta"""
     try:
         current_date = datetime.now()
-        # Verifica se a data está em um range razoável (2020-2030)
-        if current_date.year < 2020 or current_date.year > 2030:
+        # Verificar se a data não está muito no passado ou futuro
+        min_date = datetime(2020, 1, 1)
+        max_date = datetime(2030, 12, 31)
+        
+        if current_date < min_date or current_date > max_date:
             logger.warning(f"Data do sistema pode estar incorreta: {current_date}")
             return False
         
@@ -33,86 +41,299 @@ def check_system_date():
 def initialize_default_data():
     """Inicializa dados padrão no banco de dados"""
     try:
-        # Verificar se já existem dados
-        admin_count = User.query.filter_by(role='admin').count()
+        from models import db, User, Company, UserClass
         
-        if admin_count == 0:
-            logger.info("Criando usuário admin padrão...")
-            
+        # Verificar se já existe um usuário admin
+        admin_user = User.query.filter_by(username='admin').first()
+        if not admin_user:
             # Criar usuário admin padrão
             admin_user = User(
                 username='admin',
                 email='admin@localhost',
+                password_hash=generate_password_hash('admin123'),
                 role='admin',
                 is_active=True,
                 created_at=datetime.utcnow()
             )
-            admin_user.set_password('admin123')
-            
             db.session.add(admin_user)
-            
-            # Criar empresa padrão
+            logger.info("Usuário admin padrão criado")
+        
+        # Verificar se existe uma empresa padrão
+        default_company = Company.query.filter_by(name='Empresa Padrão').first()
+        if not default_company:
             default_company = Company(
                 name='Empresa Padrão',
-                description='Empresa criada automaticamente',
+                description='Empresa padrão do sistema',
                 is_active=True,
                 created_at=datetime.utcnow()
             )
-            
             db.session.add(default_company)
-            db.session.commit()
-            
-            logger.info("Dados padrão criados com sucesso")
-        else:
-            logger.info("Dados padrão já existem")
-            
+            logger.info("Empresa padrão criada")
+        
+        # Verificar se existe uma classe padrão
+        default_class = UserClass.query.filter_by(name='Padrão').first()
+        if not default_class:
+            default_class = UserClass(
+                name='Padrão',
+                description='Classe padrão de usuários',
+                download_limit=1073741824,  # 1GB
+                upload_limit=1073741824,    # 1GB
+                time_limit=3600,            # 1 hora
+                company_id=default_company.id if default_company else 1,
+                is_active=True,
+                created_at=datetime.utcnow()
+            )
+            db.session.add(default_class)
+            logger.info("Classe padrão criada")
+        
+        db.session.commit()
+        logger.info("Dados padrão inicializados com sucesso")
+        
     except Exception as e:
         logger.error(f"Erro ao inicializar dados padrão: {e}")
-        db.session.rollback()
+        import traceback
+        traceback.print_exc()
 
 def get_selected_company():
-    """Obtém a empresa selecionada na sessão"""
-    company_id = session.get('selected_company_id')
-    if company_id:
-        return Company.query.get(company_id)
-    
-    # Se não há empresa selecionada, tenta pegar a primeira disponível para o usuário
-    user_id = session.get('user_id')
-    if user_id:
-        user = User.query.get(user_id)
-        if user:
-            if user.role == 'admin':
-                # Admin pode acessar qualquer empresa
-                first_company = Company.query.filter_by(is_active=True).first()
-                if first_company:
-                    session['selected_company_id'] = first_company.id
-                    return first_company
-            else:
-                # Usuário comum só pode acessar suas empresas
-                if user.companies:
-                    first_company = user.companies[0]
-                    session['selected_company_id'] = first_company.id
-                    return first_company
-    
-    return None
+    """Obtém a empresa selecionada da sessão"""
+    try:
+        from models import Company
+        
+        company_id = session.get('selected_company_id')
+        if company_id:
+            return Company.query.get(company_id)
+        
+        # Se não há empresa selecionada, retornar a primeira disponível
+        return Company.query.first()
+    except Exception as e:
+        logger.error(f"Erro ao obter empresa selecionada: {e}")
+        return None
+
+def set_selected_company(company_id):
+    """Define a empresa selecionada na sessão"""
+    try:
+        session['selected_company_id'] = company_id
+        return True
+    except Exception as e:
+        logger.error(f"Erro ao definir empresa selecionada: {e}")
+        return False
 
 def format_bytes(bytes_value):
     """Formata bytes em formato legível"""
-    if bytes_value == 0:
+    try:
+        if bytes_value is None:
+            return "0 B"
+        
+        bytes_value = float(bytes_value)
+        
+        if bytes_value == 0:
+            return "0 B"
+        
+        size_names = ["B", "KB", "MB", "GB", "TB"]
+        i = 0
+        while bytes_value >= 1024 and i < len(size_names) - 1:
+            bytes_value /= 1024.0
+            i += 1
+        
+        return f"{bytes_value:.2f} {size_names[i]}"
+    except Exception as e:
+        logger.error(f"Erro ao formatar bytes: {e}")
         return "0 B"
-    
-    units = ['B', 'KB', 'MB', 'GB', 'TB']
-    unit_index = 0
-    size = float(bytes_value)
-    
-    while size >= 1024 and unit_index < len(units) - 1:
-        size /= 1024
-        unit_index += 1
-    
-    if unit_index == 0:
-        return f"{int(size)} {units[unit_index]}"
-    else:
-        return f"{size:.2f} {units[unit_index]}"
+
+def format_time_duration(seconds):
+    """Formata duração em segundos para formato legível"""
+    try:
+        if seconds is None or seconds == 0:
+            return "0s"
+        
+        seconds = int(seconds)
+        
+        days = seconds // 86400
+        hours = (seconds % 86400) // 3600
+        minutes = (seconds % 3600) // 60
+        secs = seconds % 60
+        
+        parts = []
+        if days > 0:
+            parts.append(f"{days}d")
+        if hours > 0:
+            parts.append(f"{hours}h")
+        if minutes > 0:
+            parts.append(f"{minutes}m")
+        if secs > 0 or not parts:
+            parts.append(f"{secs}s")
+        
+        return " ".join(parts)
+    except Exception as e:
+        logger.error(f"Erro ao formatar duração: {e}")
+        return "0s"
+
+def backup_database():
+    """Cria backup do banco de dados"""
+    try:
+        # Criar diretório de backup se não existir
+        backup_dir = 'backups'
+        if not os.path.exists(backup_dir):
+            os.makedirs(backup_dir)
+        
+        # Nome do arquivo de backup com timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        backup_filename = f"mikrotik_manager_backup_{timestamp}.db"
+        backup_path = os.path.join(backup_dir, backup_filename)
+        
+        # Copiar arquivo do banco
+        db_path = 'instance/mikrotik_manager.db'
+        if os.path.exists(db_path):
+            shutil.copy2(db_path, backup_path)
+            logger.info(f"Backup criado: {backup_path}")
+            return backup_path
+        else:
+            logger.error("Arquivo do banco de dados não encontrado")
+            return None
+    except Exception as e:
+        logger.error(f"Erro ao criar backup: {e}")
+        return None
+
+def get_system_info():
+    """Obtém informações do sistema"""
+    try:
+        import platform
+        import psutil
+        
+        info = {
+            'platform': platform.platform(),
+            'python_version': platform.python_version(),
+            'cpu_count': psutil.cpu_count(),
+            'memory_total': psutil.virtual_memory().total,
+            'memory_available': psutil.virtual_memory().available,
+            'disk_usage': psutil.disk_usage('/').percent,
+            'uptime': datetime.now() - datetime.fromtimestamp(psutil.boot_time())
+        }
+        return info
+    except Exception as e:
+        logger.error(f"Erro ao obter informações do sistema: {e}")
+        return {}
+
+def validate_mikrotik_config(host, username, password, port=8728):
+    """Valida configuração do MikroTik"""
+    try:
+        from mikrotik_connection_manager import MikroTikConnectionManager
+        
+        manager = MikroTikConnectionManager(host, username, password, port)
+        if manager.connect():
+            manager.disconnect()
+            return True, "Conexão bem-sucedida"
+        else:
+            return False, "Falha na conexão"
+    except Exception as e:
+        return False, f"Erro na validação: {str(e)}"
+
+def clean_old_logs(days=30):
+    """Remove logs antigos"""
+    try:
+        logs_dir = 'logs'
+        if not os.path.exists(logs_dir):
+            return
+        
+        cutoff_date = datetime.now() - timedelta(days=days)
+        
+        for filename in os.listdir(logs_dir):
+            file_path = os.path.join(logs_dir, filename)
+            if os.path.isfile(file_path):
+                file_time = datetime.fromtimestamp(os.path.getmtime(file_path))
+                if file_time < cutoff_date:
+                    os.remove(file_path)
+                    logger.info(f"Log antigo removido: {filename}")
+    except Exception as e:
+        logger.error(f"Erro ao limpar logs antigos: {e}")
+
+def get_database_stats():
+    """Obtém estatísticas do banco de dados"""
+    try:
+        from models import db, User, Company, UserClass, Usage
+        
+        stats = {
+            'users_count': User.query.count(),
+            'companies_count': Company.query.count(),
+            'classes_count': UserClass.query.count(),
+            'usage_records_count': Usage.query.count(),
+            'active_users_count': User.query.filter_by(is_active=True).count(),
+            'active_companies_count': Company.query.filter_by(is_active=True).count()
+        }
+        return stats
+    except Exception as e:
+        logger.error(f"Erro ao obter estatísticas do banco: {e}")
+        return {}
+
+def convert_timezone(dt, from_tz='UTC', to_tz='America/Sao_Paulo'):
+    """Converte timezone de datetime"""
+    try:
+        if dt is None:
+            return None
+        
+        # Se não tem timezone, assumir UTC
+        if dt.tzinfo is None:
+            dt = pytz.UTC.localize(dt)
+        
+        # Converter para timezone desejado
+        target_tz = pytz.timezone(to_tz)
+        return dt.astimezone(target_tz)
+    except Exception as e:
+        logger.error(f"Erro ao converter timezone: {e}")
+        return dt
+
+def sanitize_filename(filename):
+    """Sanitiza nome de arquivo"""
+    try:
+        import re
+        # Remove caracteres especiais
+        filename = re.sub(r'[<>:"/\\|?*]', '_', filename)
+        # Remove espaços extras
+        filename = re.sub(r'\s+', '_', filename)
+        return filename
+    except Exception as e:
+        logger.error(f"Erro ao sanitizar filename: {e}")
+        return filename
+
+def check_disk_space(path='/', min_space_gb=1):
+    """Verifica espaço em disco"""
+    try:
+        import shutil
+        total, used, free = shutil.disk_usage(path)
+        free_gb = free / (1024**3)
+        return free_gb >= min_space_gb, free_gb
+    except Exception as e:
+        logger.error(f"Erro ao verificar espaço em disco: {e}")
+        return True, 0
+
+def generate_report_data(start_date, end_date, company_id=None):
+    """Gera dados para relatórios"""
+    try:
+        from models import Usage, User
+        
+        query = Usage.query.filter(
+            Usage.created_at >= start_date,
+            Usage.created_at <= end_date
+        )
+        
+        if company_id:
+            query = query.join(User).filter(User.company_id == company_id)
+        
+        usage_data = query.all()
+        
+        # Processar dados
+        report_data = {
+            'total_download': sum(u.download_bytes or 0 for u in usage_data),
+            'total_upload': sum(u.upload_bytes or 0 for u in usage_data),
+            'total_time': sum(u.session_time or 0 for u in usage_data),
+            'unique_users': len(set(u.user_id for u in usage_data)),
+            'total_sessions': len(usage_data)
+        }
+        
+        return report_data
+    except Exception as e:
+        logger.error(f"Erro ao gerar dados do relatório: {e}")
+        return {}
 
 def format_duration(seconds):
     """Formata duração em segundos para formato legível"""
@@ -138,130 +359,6 @@ def calculate_percentage(used, total):
     if total == 0:
         return 0
     return min(100, (used / total) * 100)
-
-def get_system_info():
-    """Obtém informações do sistema"""
-    try:
-        import psutil
-        
-        # Informações de CPU
-        cpu_percent = psutil.cpu_percent(interval=1)
-        cpu_count = psutil.cpu_count()
-        
-        # Informações de memória
-        memory = psutil.virtual_memory()
-        memory_total = memory.total
-        memory_used = memory.used
-        memory_percent = memory.percent
-        
-        # Informações de disco
-        disk = psutil.disk_usage('/')
-        disk_total = disk.total
-        disk_used = disk.used
-        disk_percent = (disk_used / disk_total) * 100
-        
-        return {
-            'cpu': {
-                'percent': cpu_percent,
-                'count': cpu_count
-            },
-            'memory': {
-                'total': memory_total,
-                'used': memory_used,
-                'percent': memory_percent,
-                'total_formatted': format_bytes(memory_total),
-                'used_formatted': format_bytes(memory_used)
-            },
-            'disk': {
-                'total': disk_total,
-                'used': disk_used,
-                'percent': disk_percent,
-                'total_formatted': format_bytes(disk_total),
-                'used_formatted': format_bytes(disk_used)
-            }
-        }
-    except ImportError:
-        logger.warning("psutil não disponível - informações do sistema limitadas")
-        return {
-            'cpu': {'percent': 0, 'count': 1},
-            'memory': {'total': 0, 'used': 0, 'percent': 0, 'total_formatted': '0 B', 'used_formatted': '0 B'},
-            'disk': {'total': 0, 'used': 0, 'percent': 0, 'total_formatted': '0 B', 'used_formatted': '0 B'}
-        }
-    except Exception as e:
-        logger.error(f"Erro ao obter informações do sistema: {e}")
-        return None
-
-def backup_database():
-    """Cria backup do banco de dados"""
-    try:
-        db_path = 'instance/mikrotik_manager.db'
-        if not os.path.exists(db_path):
-            logger.error("Arquivo de banco de dados não encontrado")
-            return False
-        
-        # Criar diretório de backup se não existir
-        backup_dir = 'backups'
-        if not os.path.exists(backup_dir):
-            os.makedirs(backup_dir)
-        
-        # Nome do arquivo de backup com timestamp
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        backup_filename = f"mikrotik_manager_backup_{timestamp}.db"
-        backup_path = os.path.join(backup_dir, backup_filename)
-        
-        # Copiar arquivo
-        shutil.copy2(db_path, backup_path)
-        
-        logger.info(f"Backup criado: {backup_path}")
-        return backup_path
-        
-    except Exception as e:
-        logger.error(f"Erro ao criar backup: {e}")
-        return False
-
-def restore_database(backup_path):
-    """Restaura banco de dados a partir de backup"""
-    try:
-        if not os.path.exists(backup_path):
-            logger.error(f"Arquivo de backup não encontrado: {backup_path}")
-            return False
-        
-        db_path = 'instance/mikrotik_manager.db'
-        
-        # Fazer backup do arquivo atual antes de restaurar
-        if os.path.exists(db_path):
-            current_backup = f"{db_path}.backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            shutil.copy2(db_path, current_backup)
-            logger.info(f"Backup do arquivo atual criado: {current_backup}")
-        
-        # Restaurar arquivo
-        shutil.copy2(backup_path, db_path)
-        
-        logger.info(f"Banco de dados restaurado de: {backup_path}")
-        return True
-        
-    except Exception as e:
-        logger.error(f"Erro ao restaurar backup: {e}")
-        return False
-
-def format_time(seconds):
-    """Formata segundos em formato legível"""
-    if seconds == 0:
-        return "0s"
-    
-    hours = seconds // 3600
-    minutes = (seconds % 3600) // 60
-    secs = seconds % 60
-    
-    parts = []
-    if hours > 0:
-        parts.append(f"{hours}h")
-    if minutes > 0:
-        parts.append(f"{minutes}m")
-    if secs > 0 or not parts:
-        parts.append(f"{secs}s")
-    
-    return " ".join(parts)
 
 def format_speed(bytes_per_second):
     """Formata velocidade em formato legível"""
@@ -303,22 +400,8 @@ def get_usage_color(percentage):
     else:
         return 'danger'
 
-def sanitize_filename(filename):
-    """Sanitiza nome de arquivo"""
-    # Remove caracteres especiais
-    filename = re.sub(r'[^\w\s-]', '', filename)
-    # Substitui espaços por underscores
-    filename = re.sub(r'[-\s]+', '_', filename)
-    return filename
-
-def generate_random_password(length=8):
-    """Gera senha aleatória"""
-    characters = string.ascii_letters + string.digits
-    return ''.join(secrets.choice(characters) for _ in range(length))
-
 def validate_ip_address(ip):
     """Valida endereço IP"""
-    import ipaddress
     try:
         ipaddress.ip_address(ip)
         return True

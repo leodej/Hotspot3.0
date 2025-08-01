@@ -1,55 +1,53 @@
 """
-Utilitários do sistema MikroTik Manager
+Módulo de utilitários para o MikroTik Manager
 """
 
+# Importações seguras para charts
 try:
-    from .charts import generate_chart
+    from .charts import (
+        generate_chart,
+        generate_usage_chart,
+        generate_bandwidth_chart,
+        generate_user_activity_chart
+    )
     CHARTS_AVAILABLE = True
 except ImportError as e:
-    print(f"Warning: Charts module not available: {e}")
+    print(f"Charts não disponíveis: {e}")
     CHARTS_AVAILABLE = False
     
+    # Funções dummy para charts
     def generate_chart(*args, **kwargs):
-        """Fallback function when charts are not available"""
-        return "<div class='alert alert-warning'>Gráficos não disponíveis - matplotlib não instalado</div>"
+        return None
+    
+    def generate_usage_chart(*args, **kwargs):
+        return None
+    
+    def generate_bandwidth_chart(*args, **kwargs):
+        return None
+    
+    def generate_user_activity_chart(*args, **kwargs):
+        return None
 
+# Importações dos helpers
 from .helpers import (
     check_system_date,
     initialize_default_data,
     get_selected_company,
+    set_selected_company,
     format_bytes,
-    format_duration,
-    calculate_percentage,
-    get_system_info,
+    format_time_duration,
     backup_database,
-    restore_database,
-    format_time,
-    format_speed,
-    get_date_range,
-    is_limit_exceeded,
-    get_usage_color,
+    get_system_info,
+    validate_mikrotik_config,
+    clean_old_logs,
+    get_database_stats,
+    convert_timezone,
     sanitize_filename,
-    generate_random_password,
-    validate_ip_address,
-    validate_email,
-    get_client_ip,
-    log_user_action,
-    hash_password,
-    verify_password,
-    format_datetime,
-    get_current_timestamp,
-    safe_int,
-    safe_float,
-    truncate_string,
-    clean_string,
-    is_valid_email,
-    get_file_size,
-    create_backup,
-    restore_backup,
-    export_to_csv,
-    import_from_csv
+    check_disk_space,
+    generate_report_data
 )
 
+# Importações dos decorators
 from .decorators import (
     login_required,
     admin_required,
@@ -57,43 +55,33 @@ from .decorators import (
     rate_limit
 )
 
+# Lista de exports
 __all__ = [
+    # Charts
     'generate_chart',
+    'generate_usage_chart', 
+    'generate_bandwidth_chart',
+    'generate_user_activity_chart',
     'CHARTS_AVAILABLE',
+    
+    # Helpers
     'check_system_date',
     'initialize_default_data',
     'get_selected_company',
+    'set_selected_company',
     'format_bytes',
-    'format_duration',
-    'calculate_percentage',
-    'get_system_info',
+    'format_time_duration',
     'backup_database',
-    'restore_database',
-    'format_time',
-    'format_speed',
-    'get_date_range',
-    'is_limit_exceeded',
-    'get_usage_color',
+    'get_system_info',
+    'validate_mikrotik_config',
+    'clean_old_logs',
+    'get_database_stats',
+    'convert_timezone',
     'sanitize_filename',
-    'generate_random_password',
-    'validate_ip_address',
-    'validate_email',
-    'get_client_ip',
-    'log_user_action',
-    'hash_password',
-    'verify_password',
-    'format_datetime',
-    'get_current_timestamp',
-    'safe_int',
-    'safe_float',
-    'truncate_string',
-    'clean_string',
-    'is_valid_email',
-    'get_file_size',
-    'create_backup',
-    'restore_backup',
-    'export_to_csv',
-    'import_from_csv',
+    'check_disk_space',
+    'generate_report_data',
+    
+    # Decorators
     'login_required',
     'admin_required',
     'company_required',

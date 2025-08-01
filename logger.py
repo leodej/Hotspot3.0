@@ -4,29 +4,25 @@ from datetime import datetime
 from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
 import json
 import traceback
-import time
-from config import Config
 
 # Configuração de timezone
-# Usar o timezone local do sistema em vez de UTC
 SYSTEM_TIMEZONE = datetime.now().astimezone().tzinfo
 
 def get_current_datetime():
     """Retorna o datetime atual no timezone do sistema"""
-    # Usar datetime.now().astimezone() para garantir que a data seja a atual do sistema
-    # com o timezone local
     return datetime.now().astimezone(SYSTEM_TIMEZONE)
 
 def convert_to_system_timezone(dt):
     """Converte um datetime para o timezone do sistema"""
     if dt.tzinfo is None:
+        from datetime import timezone
         dt = dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(SYSTEM_TIMEZONE)
 
-# Configuração do logger
 class CustomJsonFormatter(logging.Formatter):
+    """Formatador JSON customizado para logs"""
+    
     def format(self, record):
-        # Garantir que o timestamp seja no formato ISO 8601 com timezone
         current_time = get_current_datetime()
         
         log_record = {
@@ -36,12 +32,10 @@ class CustomJsonFormatter(logging.Formatter):
             'module': record.module,
             'function': record.funcName,
             'line': record.lineno,
-            # Adicionar data e hora separadamente para facilitar filtragem
             'date': current_time.strftime('%Y-%m-%d'),
             'time': current_time.strftime('%H:%M:%S')
         }
         
-        # Adicionar exceção se existir
         if record.exc_info:
             log_record['exception'] = self.formatException(record.exc_info)
         
@@ -57,15 +51,30 @@ class CustomJsonFormatter(logging.Formatter):
 
 def setup_logger():
     """Configura o sistema de logging"""
-    # Configurar formato
+    # Criar diretório de logs se não existir
+    log_dir = 'logs'
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    
+    # Configurar formato simples para console
     formatter = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     
-    # Handler para arquivo
-    file_handler = logging.FileHandler(Config.LOG_FILE, encoding='utf-8')
-    file_handler.setFormatter(formatter)
-    file_handler.setLevel(getattr(logging, Config.LOG_LEVEL))
+    # Handler para arquivo com rotação
+    log_file = os.path.join(log_dir, 'mikrotik_manager.log')
+    try:
+        file_handler = RotatingFileHandler(
+            log_file, 
+            maxBytes=10*1024*1024,  # 10MB
+            backupCount=5,
+            encoding='utf-8'
+        )
+        file_handler.setFormatter(formatter)
+        file_handler.setLevel(logging.INFO)
+    except PermissionError:
+        print(f"Erro de permissão ao criar arquivo de log: {log_file}")
+        file_handler = None
     
     # Handler para console
     console_handler = logging.StreamHandler()
@@ -74,8 +83,14 @@ def setup_logger():
     
     # Logger principal
     logger = logging.getLogger('mikrotik_manager')
-    logger.setLevel(getattr(logging, Config.LOG_LEVEL))
-    logger.addHandler(file_handler)
+    logger.setLevel(logging.INFO)
+    
+    # Limpar handlers existentes
+    logger.handlers.clear()
+    
+    # Adicionar handlers
+    if file_handler:
+        logger.addHandler(file_handler)
     logger.addHandler(console_handler)
     
     return logger
@@ -108,9 +123,14 @@ def log_with_context(level, message, **context):
         logger.critical(message)
 
 # Criar logger global
-main_logger = setup_logger()
-
-# Função para adicionar contexto ao log
-# Inicializar logger
-main_logger.info("Logger inicializado")
-main_logger.error("Logger inicializado")  # Teste de erro
+try:
+    main_logger = setup_logger()
+    main_logger.info("Logger inicializado com sucesso")
+except Exception as e:
+    print(f"Erro ao inicializar logger: {e}")
+    # Criar logger básico como fallback
+    main_logger = logging.getLogger('mikrotik_manager')
+    main_logger.setLevel(logging.INFO)
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(logging.Formatter('%(levelname)s - %(message)s'))
+    main_logger.addHandler(console_handler)

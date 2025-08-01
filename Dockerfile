@@ -27,15 +27,16 @@ RUN apt-get update \
         zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
+# Create necessary directories with proper permissions
+RUN mkdir -p /app/logs /app/static/css /app/static/js /app/uploads /app/instance /app/backups \
+    && chmod 755 /app/logs /app/static /app/uploads /app/instance /app/backups
+
 # Copy requirements first for better caching
 COPY requirements.txt .
 
-# Install Python dependencies with verbose output
+# Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir --verbose -r requirements.txt
-
-# Create necessary directories
-RUN mkdir -p /app/logs /app/static/css /app/static/js /app/uploads /app/instance
+    && pip install --no-cache-dir -r requirements.txt
 
 # Copy project files
 COPY . .
@@ -43,9 +44,11 @@ COPY . .
 # Make entrypoint executable
 RUN chmod +x docker-entrypoint.sh
 
-# Create non-root user
+# Create non-root user and set permissions
 RUN adduser --disabled-password --gecos '' appuser \
-    && chown -R appuser:appuser /app
+    && chown -R appuser:appuser /app \
+    && chmod -R 755 /app/logs /app/uploads /app/instance /app/backups
+
 USER appuser
 
 # Expose port
