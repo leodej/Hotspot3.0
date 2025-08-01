@@ -1,13 +1,24 @@
-import matplotlib
-matplotlib.use('Agg')  # Use non-interactive backend
-import matplotlib.pyplot as plt
+try:
+    import matplotlib
+    matplotlib.use('Agg')  # Use non-interactive backend
+    import matplotlib.pyplot as plt
+    import numpy as np
+    MATPLOTLIB_AVAILABLE = True
+except ImportError:
+    MATPLOTLIB_AVAILABLE = False
+    plt = None
+    np = None
+
 import io
 import base64
 from datetime import datetime, timedelta
-import numpy as np
 
 def generate_chart(data, title, xlabel, ylabel, chart_type='bar'):
     """Gera gráfico básico"""
+    if not MATPLOTLIB_AVAILABLE:
+        print("Matplotlib não disponível. Gráficos desabilitados.")
+        return None
+        
     try:
         plt.figure(figsize=(10, 6))
         
@@ -49,6 +60,10 @@ def generate_chart(data, title, xlabel, ylabel, chart_type='bar'):
 
 def generate_usage_chart(usage_records, username):
     """Gera gráfico de uso específico"""
+    if not MATPLOTLIB_AVAILABLE:
+        print("Matplotlib não disponível. Gráficos desabilitados.")
+        return None
+        
     try:
         # Agrupar dados por dia
         daily_data = {}
@@ -87,6 +102,10 @@ def generate_usage_chart(usage_records, username):
 
 def generate_comparison_chart(data1, data2, labels, title):
     """Gera gráfico de comparação"""
+    if not MATPLOTLIB_AVAILABLE:
+        print("Matplotlib não disponível. Gráficos desabilitados.")
+        return None
+        
     try:
         x = np.arange(len(labels))
         width = 0.35
@@ -117,6 +136,10 @@ def generate_comparison_chart(data1, data2, labels, title):
 
 def generate_pie_chart(data, title):
     """Gera gráfico de pizza"""
+    if not MATPLOTLIB_AVAILABLE:
+        print("Matplotlib não disponível. Gráficos desabilitados.")
+        return None
+        
     try:
         if isinstance(data, dict):
             labels = list(data.keys())
@@ -145,6 +168,10 @@ def generate_pie_chart(data, title):
 
 def generate_time_series_chart(timestamps, values, title, ylabel):
     """Gera gráfico de série temporal"""
+    if not MATPLOTLIB_AVAILABLE:
+        print("Matplotlib não disponível. Gráficos desabilitados.")
+        return None
+        
     try:
         plt.figure(figsize=(12, 6))
         plt.plot(timestamps, values, marker='o', linewidth=2)
@@ -170,6 +197,10 @@ def generate_time_series_chart(timestamps, values, title, ylabel):
 
 def generate_heatmap(data, title, xlabel, ylabel):
     """Gera mapa de calor"""
+    if not MATPLOTLIB_AVAILABLE:
+        print("Matplotlib não disponível. Gráficos desabilitados.")
+        return None
+        
     try:
         plt.figure(figsize=(10, 8))
         plt.imshow(data, cmap='YlOrRd', aspect='auto')
@@ -191,3 +222,83 @@ def generate_heatmap(data, title, xlabel, ylabel):
     except Exception as e:
         print(f"Erro ao gerar mapa de calor: {e}")
         return None
+
+def generate_simple_chart_html(data, title, chart_type='bar'):
+    """Gera gráfico simples em HTML/CSS quando matplotlib não está disponível"""
+    if isinstance(data, dict):
+        labels = list(data.keys())
+        values = list(data.values())
+    else:
+        labels = [f"Item {i+1}" for i in range(len(data))]
+        values = data
+    
+    if not values:
+        return f"<div class='chart-placeholder'>Sem dados para exibir em {title}</div>"
+    
+    max_value = max(values) if values else 1
+    
+    html = f"""
+    <div class="simple-chart">
+        <h3>{title}</h3>
+        <div class="chart-bars">
+    """
+    
+    for i, (label, value) in enumerate(zip(labels, values)):
+        height = (value / max_value) * 100 if max_value > 0 else 0
+        html += f"""
+            <div class="chart-bar">
+                <div class="bar" style="height: {height}%"></div>
+                <div class="label">{label}</div>
+                <div class="value">{value}</div>
+            </div>
+        """
+    
+    html += """
+        </div>
+    </div>
+    <style>
+    .simple-chart {
+        margin: 20px 0;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+    }
+    .chart-bars {
+        display: flex;
+        align-items: flex-end;
+        height: 200px;
+        gap: 10px;
+    }
+    .chart-bar {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: 100%;
+    }
+    .bar {
+        background: #007bff;
+        width: 30px;
+        min-height: 5px;
+        margin-bottom: 5px;
+    }
+    .label {
+        font-size: 12px;
+        text-align: center;
+        margin-top: 5px;
+    }
+    .value {
+        font-size: 11px;
+        color: #666;
+    }
+    .chart-placeholder {
+        padding: 40px;
+        text-align: center;
+        color: #666;
+        border: 2px dashed #ddd;
+        border-radius: 5px;
+    }
+    </style>
+    """
+    
+    return html
